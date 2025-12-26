@@ -1,0 +1,94 @@
+---
+import Layout from '../layouts/Layout.astro';
+export const prerender = false; // Force SSR
+
+// Access the environment bindings
+const { API_GATEWAY } = Astro.locals.runtime.env;
+
+// Define Cache Strategy
+// SWR: Cache for 60s, serve stale for up to 1 day while revalidating
+Astro.response.headers.set(
+  "Cache-Control", 
+  "public, max-age=60, stale-while-revalidate=86400"
+);
+
+// Define Cache Tag for Smart Purging
+// When db-service updates, it can purge this tag
+Astro.response.headers.set("Cache-Tag", "demo-page");
+
+let apiStatus = "Not Connected";
+let responseData = null;
+
+try {
+  if (API_GATEWAY) {
+    // Example RPC Call (assuming API Gateway has a fetch method or similar)
+    // For raw fetch usage:
+    const res = await API_GATEWAY.fetch("http://internal/health");
+    if (res.ok) {
+        apiStatus = "Connected ✅";
+        responseData = await res.text(); // or .json()
+    } else {
+        apiStatus = `Error: ${res.status}`;
+    }
+  } else {
+    apiStatus = "Binding Missing ❌ (Check wrangler.json)";
+  }
+} catch (e: any) {
+  apiStatus = `Exception: ${e.message}`;
+}
+---
+
+const pageTitle = "Astro Cloudflare SSR Demo";
+---
+
+<Layout title={pageTitle}>
+    <div class="flex flex-col min-h-screen items-center justify-center p-4">
+		<h1 class="text-4xl md:text-5xl font-bold mb-8 text-center">
+            <span class="text-gradient">Cloudflare Native</span> SSR Demo
+        </h1>
+        
+        <div class="w-full max-w-2xl border border-border bg-card p-8 rounded-xl shadow-2xl relative overflow-hidden">
+            <!-- Glow Effect -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
+
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-semibold text-white">System Status</h2>
+                <div class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-mono border border-green-500/30">
+                    ONLINE
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-muted/50 p-4 rounded-lg">
+                    <span class="block text-muted-foreground text-sm mb-1">Render Mode</span>
+                    <span class="font-mono text-primary font-bold">SSR (Dynamic)</span>
+                </div>
+                <div class="bg-muted/50 p-4 rounded-lg">
+                    <span class="block text-muted-foreground text-sm mb-1">API Gateway</span>
+                    <span class="font-mono text-white">{apiStatus}</span>
+                </div>
+                <div class="bg-muted/50 p-4 rounded-lg md:col-span-2">
+                    <span class="block text-muted-foreground text-sm mb-1">Cache-Control Header</span>
+                    <code class="block text-xs text-accent mt-1 break-all">public, max-age=60, stale-while-revalidate=86400</code>
+                </div>
+            </div>
+
+            {responseData && (
+                <div class="bg-black/40 rounded-lg p-4 border border-white/5">
+                    <h3 class="text-sm font-medium mb-2 text-muted-foreground">API Response Output:</h3>
+                    <pre class="text-xs font-mono text-green-400 overflow-x-auto">{responseData}</pre>
+                </div>
+            )}
+        </div>
+
+        <p class="mt-8 text-muted-foreground text-sm flex items-center gap-2">
+            Generated at: <span class="text-white bg-muted px-2 py-1 rounded">{new Date().toLocaleTimeString()}</span>
+        </p>
+
+        <div class="mt-8">
+            <a href="/" class="text-primary hover:text-primary/80 underline underline-offset-4 decoration-primary/50">
+                &larr; Voltar para Home
+            </a>
+        </div>
+    </div>
+</Layout>

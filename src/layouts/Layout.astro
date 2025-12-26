@@ -1,0 +1,25 @@
+---
+import '../styles/global.css';
+
+interface Props {
+	title: string;
+    description?: string;
+}
+
+const { title, description = "O melhor comparador de preços para hardware e games." } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR" class="dark">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content={description} />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} | Nerd Ofertas</title>
+	</head>
+	<body class="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
+		<slot />
+	</body>
+</html>
