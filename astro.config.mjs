@@ -15,13 +15,18 @@ export default defineConfig({
   output: "server",
 
   adapter: cloudflare({
-      imageService: "cloudflare",
-      platformProxy: {
-          enabled: true,
-      },
-	}),
+    imageService: "cloudflare",
+    platformProxy: {
+      enabled: true,
+    },
+  }),
 
   vite: {
     plugins: [tailwindcss()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
   },
 });
