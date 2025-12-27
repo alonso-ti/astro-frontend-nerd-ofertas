@@ -1,24 +1,120 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import type { ScraperResult } from '@nerd-ofertas/types';
 
-// Force SSR to ensure we can handle dynamic data later (e.g. latest deals)
+// Force SSR to handle dynamic data
 export const prerender = false;
+
+// Mock data fallback if DB isn't ready or returns empty
+const mockProducts: ScraperResult[] = [
+  {
+    externalId: "1",
+    title: "Placa de Vídeo RTX 4060 Ti Eagle Gigabyte",
+    price: 249900,
+    oldPrice: 299900,
+    url: "https://kabum.com.br",
+    imageUrl: "https://images.kabum.com.br/produtos/fotos/461386/placa-de-video-gigabyte-nvidia-geforce-rtx-4060-ti-eagle-8g-gddr6-dlss-ray-tracing-gv-n406teagle-8gd_1685022874_g.jpg",
+    availability: true,
+    seller: { name: "Kabum", isOfficial: true }
+  },
+  {
+     externalId: "2",
+     title: "Processador AMD Ryzen 7 5700X3D",
+     price: 139999,
+     url: "https://terabyteshop.com.br",
+     imageUrl: "https://img.terabyteshop.com.br/produto/g/processador-amd-ryzen-7-5700x3d-30ghz-41ghz-turbo-8-cores-16-threads-am4-100-100001503wof_187667.jpg",
+     availability: true,
+     seller: { name: "Terabyte" }
+  },
+   {
+     externalId: "3",
+     title: "Console PlayStation 5 Slim Edição Digital",
+     price: 340000,
+     oldPrice: 379900,
+     url: "https://amazon.com.br",
+     imageUrl: "https://m.media-amazon.com/images/I/41AG4j-iNCL._AC_SX679_.jpg",
+     availability: true,
+     seller: { name: "Amazon" }
+  }
+];
+
+let products: ScraperResult[] = [];
+let error = null;
+
+try {
+    const db = Astro.locals.runtime?.env?.DB_SERVICE;
+    if (db) {
+        // Try to fetch latest or "daily deals". Using search "oferta" as a proxy for now.
+        // Or better, if we have a getRecentProducts, use that.
+        // The RPC interface shows: searchProducts(query).
+        // Let's try to search for "rtx" or "ryzen" to get some content populated.
+        // Ideally we would have a getFeaturedProducts() RPC.
+        const searchResults = await db.searchProducts("rtx");
+        if (searchResults && searchResults.length > 0) {
+            products = searchResults;
+        } else {
+             products = mockProducts; // Fallback to mock if DB empty
+        }
+    } else {
+        console.warn("DB_SERVICE not bound in Astro locals");
+        products = mockProducts;
+    }
+} catch (e) {
+    console.error("Failed to fetch products:", e);
+    error = e.message;
+    products = mockProducts; // Fallback on error
+}
 ---
 
 <Layout 
 	title="Nerd Ofertas - O Comparador de Preços para Hardware e Games"
 	description="Encontre o melhor preço para Placas de Vídeo, Processadores, Consoles e Jogos. Monitoramos Kabum, Amazon, Pichau, Terabyte e muito mais em tempo real."
 >
-	<main class="min-h-screen">
+	<main class="min-h-screen pb-16">
 		<Hero />
 		
-		<!-- Placeholder for future sections to keep the page useful during dev -->
-		<section class="container mx-auto px-4 py-16">
-			<div class="text-center">
-				<h2 class="text-2xl font-bold mb-4">Em breve: Ofertas do dia</h2>
-				<p class="text-muted-foreground">Estamos indexando milhares de produtos para você.</p>
+		<section class="container mx-auto px-4 -mt-20 relative z-20">
+            <div class="flex items-center justify-between mb-8 text-white">
+                 <h2 class="text-3xl font-bold drop-shadow-md">Ofertas em Destaque</h2>
+                 <Button variant="secondary" className="hidden sm:flex" asChild>
+                    <a href="/search">Ver Todas as Ofertas</a>
+                 </Button>
+            </div>
+
+            {error && (
+                <div class="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg mb-8 backdrop-blur-sm">
+                    ⚠️ Não foi possível carregar as ofertas em tempo real. Exibindo dados de exemplo.
+                </div>
+            )}
+
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {products.map((product) => (
+                    <ProductCard product={product} />
+                ))}
 			</div>
+            
+            <div class="mt-8 text-center sm:hidden">
+                 <Button variant="secondary" size="lg" className="w-full" asChild>
+                    <a href="/search">Ver Todas as Ofertas</a>
+                 </Button>
+            </div>
 		</section>
+
+         <section class="container mx-auto px-4 py-24">
+             <div class="bg-secondary/5 rounded-3xl p-8 md:p-12 border border-secondary/10 text-center">
+                 <Badge variant="outline" className="mb-4 border-primary/20 text-primary bg-primary/5">Nerd Ofertas Bot</Badge>
+                 <h2 class="text-3xl md:text-4xl font-bold mb-4">Não perca nenhuma promoção!</h2>
+                 <p class="text-muted-foreground max-w-2xl mx-auto mb-8 text-lg">
+                     Entre no nosso canal do Telegram e receba notificações instantâneas quando o produto que você quer baixar de preço.
+                 </p>
+                 <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-[0_0_30px_-10px_var(--primary)]" asChild>
+                     <a href="https://t.me/NerdOfertasBot" target="_blank">Entrar no Canal do Telegram</a>
+                 </Button>
+             </div>
+         </section>
 	</main>
 </Layout>

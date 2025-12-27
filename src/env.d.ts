@@ -11,4 +11,5 @@ declare namespace App {
 interface Env {
   API_GATEWAY: Fetcher;
   ASSETS: Fetcher;
+  DB_SERVICE: Service<import("@nerd-ofertas/types").DbServiceRpc>;
 }
