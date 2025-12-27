@@ -1,0 +1,75 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProductCard from '../components/ProductCard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search as SearchIcon } from 'lucide-react';
+import type { ScraperResult } from '@nerd-ofertas/types';
+
+export const prerender = false;
+
+const q = Astro.url.searchParams.get('q') || '';
+let products: ScraperResult[] = [];
+let error = null;
+
+if (q) {
+  try {
+      const db = Astro.locals.runtime?.env?.DB_SERVICE;
+      if (db) {
+          const searchResults = await db.searchProducts(q);
+          if (searchResults) {
+              products = searchResults;
+          }
+      }
+  } catch (e) {
+      console.error("Search failed:", e);
+      error = "Erro ao buscar produtos. Tente novamente.";
+  }
+}
+---
+
+<Layout title={`Busca: ${q} | Nerd Ofertas`}>
+  <main class="container mx-auto px-4 py-8 min-h-screen">
+    <div class="mb-8">
+      <form action="/search" method="get" class="flex gap-2 max-w-xl mx-auto">
+        <Input 
+          type="search" 
+          name="q" 
+          defaultValue={q} 
+          placeholder="Buscar placas de vídeo, processadores..." 
+          class="bg-background"
+        />
+        <Button type="submit">
+          <SearchIcon className="h-4 w-4 mr-2" />
+          Buscar
+        </Button>
+      </form>
+    </div>
+
+    {q && (
+      <h1 class="text-2xl font-bold mb-6">
+        Resultados para "{q}"
+      </h1>
+    )}
+
+    {error && (
+        <div class="p-4 rounded-lg bg-destructive/10 text-destructive mb-6">
+            {error}
+        </div>
+    )}
+
+    {products.length > 0 ? (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {products.map((product) => (
+            <ProductCard product={product} client:load />
+        ))}
+      </div>
+    ) : (
+      q && !error && (
+        <div class="text-center py-12 text-muted-foreground">
+          Nenhum produto encontrado para "{q}".
+        </div>
+      )
+    )}
+  </main>
+</Layout>
