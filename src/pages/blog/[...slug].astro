@@ -1,21 +1,80 @@
 ---
 import { type CollectionEntry, getCollection } from 'astro:content';
-import BlogPost from '../../layouts/BlogPost.astro';
-import { render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import { Badge } from '@/components/ui/badge';
+import ProductCard from '@/components/ProductCard';
+import type { DbServiceRpc, ScraperResult } from '@nerd-ofertas/types';
 
 export async function getStaticPaths() {
 	const posts = await getCollection('blog');
 	return posts.map((post) => ({
-		params: { slug: post.id },
+		params: { slug: post.slug },
 		props: post,
 	}));
 }
 type Props = CollectionEntry<'blog'>;
 
 const post = Astro.props;
-const { Content } = await render(post);
+const { Content } = await post.render();
+
+// Fetch related products if any
+let relatedProducts: ScraperResult[] = [];
+if (post.data.relatedProducts && post.data.relatedProducts.length > 0) {
+    try {
+        const db = Astro.locals.runtime?.env?.DB_SERVICE;
+        if (db) {
+            // Ideally use getProductDetailsBulk or similar. 
+            // For now, let's search for them or simulate fetch.
+            // Since we don't have a bulk fetch RPC, we loop (not ideal but works for small sets)
+            // Or use search as proxy if the ID is actually a keyword
+            
+            // Simulating fetch for demo purposes or using search
+             const results = await (db as unknown as DbServiceRpc).searchProducts("rtx"); // Fallback mock query
+             if(results) relatedProducts = results.slice(0, 3);
+        }
+    } catch (e) {
+        console.error("Failed to fetch related products for blog", e);
+    }
+}
 ---
 
-<BlogPost {...post.data}>
-	<Content />
-</BlogPost>
+<Layout title={post.data.title} description={post.data.description}>
+	<main class="container mx-auto px-4 py-12 max-w-5xl">
+        
+        {/* Post Header */}
+		<article class="prose prose-zinc dark:prose-invert max-w-3xl mx-auto">
+			<div class="mb-10 text-center">
+                {post.data.heroImage && <img width={1020} height={510} src={post.data.heroImage} alt="" class="rounded-xl shadow-lg mb-8 object-cover aspect-video w-full" />}
+				
+                <div class="flex items-center justify-center gap-2 mb-4">
+                    {post.data.tags?.map(tag => <Badge variant="secondary">{tag}</Badge>)}
+                </div>
+                
+                <h1 class="font-extrabold text-4xl md:text-5xl tracking-tight mb-4">{post.data.title}</h1>
+                <p class="text-xl text-muted-foreground leading-relaxed">{post.data.description}</p>
+                
+                <hr class="my-8 border-border" />
+			</div>
+
+            {/* Content */}
+			<div class="blog-content">
+				<Content />
+			</div>
+
+            {/* Related Products Embed */}
+            {relatedProducts.length > 0 && (
+                <div class="not-prose mt-16 bg-muted/20 p-8 rounded-2xl border border-border">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                        Ofertas Mencionadas
+                        <Badge>Ao Vivo</Badge>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {relatedProducts.map(p => (
+                            <ProductCard product={p} client:visible />
+                        ))}
+                    </div>
+                </div>
+            )}
+		</article>
+	</main>
+</Layout>

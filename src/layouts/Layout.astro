@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
 
 interface Props {
 	title: string;
@@ -24,7 +26,12 @@ const { title, description = "Compare preços de eletrônicos, casa, moda e muit
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 	</head>
-	<body class="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground font-sans">
-		<slot />
+	<body class="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground font-sans">
+        <Header />
+		<div class="flex-grow">
+		    <slot />
+        </div>
+        <Footer />
 	</body>
 </html>
+

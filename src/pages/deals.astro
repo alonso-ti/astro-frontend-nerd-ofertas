@@ -1,0 +1,134 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProductCard from '../components/ProductCard';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Flame, TrendingDown, Clock } from 'lucide-react';
+import type { ScraperResult, DbServiceRpc } from '@nerd-ofertas/types';
+
+export const prerender = false;
+
+// Mock data for fallback or development
+const mockDeals: ScraperResult[] = [
+  {
+    externalId: "mock-deal-1",
+    title: "Monitor Gamer Samsung Odyssey G40 25\" IPS 240Hz",
+    price: 139900,
+    oldPrice: 229900,
+    url: "#",
+    imageUrl: "https://images.kabum.com.br/produtos/fotos/435136/monitor-gamer-samsung-odyssey-g4-25-ips-fhd-240hz-1ms-freesync-premium-g-sync-compatible-hdr10-hdmi-displayport-ajuste-de-altura-ls25bg400elxzd_1680540024_gg.jpg",
+    availability: true,
+    seller: { name: "Kabum", isOfficial: true }
+  },
+  {
+     externalId: "mock-deal-2",
+     title: "Console PlayStation 5 Slim Edição Digital",
+     price: 339000,
+     oldPrice: 399990,
+     url: "#",
+     imageUrl: "https://m.media-amazon.com/images/I/41AG4j-iNCL._AC_SX679_.jpg",
+     availability: true,
+     seller: { name: "Amazon" }
+  },
+  {
+     externalId: "mock-deal-3",
+     title: "SSD 1TB Kingston NV2 M.2 2280 NVMe",
+     price: 37990,
+     oldPrice: 59990,
+     url: "#",
+     imageUrl: "https://images.kabum.com.br/produtos/fotos/380745/ssd-1-tb-kingston-nv2-m-2-2280-pcie-4-0-x4-nvme-leitura-3500-mb-s-e-gravacao-2100-mb-s-snv2s-1000g_1661277460_gg.jpg",
+     availability: true,
+     seller: { name: "Kabum" }
+  }
+];
+
+let products: ScraperResult[] = [];
+let error = null;
+
+try {
+    const db = Astro.locals.runtime?.env?.DB_SERVICE;
+    if (db) {
+        // Fetch products relevant for deals
+        // Ideally we would want a specific RPC like `getTopDeals()`
+        // For now, let's search for "gamer" or "hardware" to enrich the list
+        const results = await (db as unknown as DbServiceRpc).searchProducts("hardware");
+        if (results && results.length > 0) {
+            products = results;
+        } else {
+            products = mockDeals;
+        }
+    } else {
+         products = mockDeals;
+    }
+} catch (e) {
+    console.error("Failed to fetch deals:", e);
+    error = (e as any).message;
+    products = mockDeals;
+}
+
+// Calculate discount and sort by highest discount first
+const deals = products
+    .map(p => {
+        const discount = (p.oldPrice && p.oldPrice > p.price) 
+            ? ((p.oldPrice - p.price) / p.oldPrice) * 100 
+            : 0;
+        return { ...p, discount };
+    })
+    .sort((a, b) => b.discount - a.discount);
+
+---
+
+<Layout 
+    title="Ofertas do Dia | Melhores Descontos em Hardware"
+    description="As maiores quedas de preço em Placas de Vídeo, Processadores e Consoles atualizadas em tempo real."
+>
+  <main class="min-h-screen bg-background pb-20">
+      
+      {/* Header Banner */}
+      <div class="bg-primary/5 border-b border-primary/10 py-12 md:py-20 text-center relative overflow-hidden">
+          <div class="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-800/50 pointer-events-none"></div>
+          
+          <div class="container mx-auto px-4 relative z-10">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm font-bold mb-4 animate-bounce">
+                  <Flame class="w-4 h-4 fill-red-500 text-red-500" />
+                  <span class="uppercase">Esquenta Gamer</span>
+              </div>
+              <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
+                  Ofertas do Dia
+              </h1>
+              <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
+                  Selecionamos as maiores quedas de preço das últimas 24 horas. Corra antes que acabe o estoque!
+              </p>
+          </div>
+      </div>
+
+      <div class="container mx-auto px-4 py-12">
+          
+          {/* Filters / Sort (Placeholder) */}
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+              <div class="flex items-center gap-2">
+                  <Badge variant="secondary" class="h-8 px-3 cursor-pointer hover:bg-muted">Hardware</Badge>
+                  <Badge variant="secondary" class="h-8 px-3 cursor-pointer hover:bg-muted">Periféricos</Badge>
+                  <Badge variant="secondary" class="h-8 px-3 cursor-pointer hover:bg-muted">Consoles</Badge>
+              </div>
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock class="w-4 h-4" />
+                  Atualizado há 15 minutos
+              </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {deals.map((deal) => (
+                  <ProductCard product={deal} client:visible />
+              ))}
+          </div>
+
+          {deals.length === 0 && (
+             <div class="text-center py-20 text-muted-foreground">
+                 <p>Nenhuma oferta bombástica encontrada no momento. Volte em breve!</p>
+             </div>
+          )}
+
+      </div>
+  </main>
+</Layout>

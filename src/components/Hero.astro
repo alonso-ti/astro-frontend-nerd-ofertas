@@ -1,60 +1,99 @@
 ---
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Flame, Search } from "lucide-react";
+import ProductCard from "./ProductCard";
+import type { ScraperResult } from "@nerd-ofertas/types";
+
+// Mock Trending Data
+const trendingProducts: ScraperResult[] = [
+    {
+        externalId: "mock-1",
+        title: "Placa de Vídeo RTX 4070 Ti Super Eagle OC Gigabyte",
+        price: 529900,
+        oldPrice: 650000,
+        url: "#",
+        imageUrl: "https://images.kabum.com.br/produtos/fotos/525389/placa-de-video-rtx-4070-ti-super-eagle-oc-gigabyte-nvidia-geforce-16gb-gddr6x-dlss-ray-tracing-gv-n407tseagle-oc-16gd_1706037803_gg.jpg", 
+        availability: true,
+        seller: { name: "KaBuM!", isOfficial: true },
+        meta: {}
+    },
+    {
+        externalId: "mock-2",
+        title: "Processador AMD Ryzen 7 5700X3D",
+        price: 134999,
+        oldPrice: 180000,
+        url: "#",
+        imageUrl: "https://images.kabum.com.br/produtos/fotos/520369/processador-amd-ryzen-7-5700x3d-3-6-ghz-4-1ghz-max-turbo-cache-4mb-8-nucleos-16-threads-am4-100-100001503wof_1706275816_gg.jpg",
+        availability: true,
+        seller: { name: "Amazon", isOfficial: true },
+        meta: {}
+    }
+];
 ---
 
-<section class="relative pt-20 pb-16 md:pt-32 md:pb-24 overflow-hidden">
-  <!-- Dynamic Background Glow -->
-  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-primary/20 blur-[120px] rounded-full pointer-events-none opacity-50"></div>
-
+<section class="relative pt-12 pb-20 lg:pt-24 lg:pb-32 overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
   <div class="container mx-auto px-4 relative z-10">
-    <div class="flex flex-col md:flex-row items-center gap-12">
+    <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
       
-      <!-- Text Content -->
-      <div class="flex-1 text-center md:text-left">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-sm font-medium mb-6 animate-fade-in">
-          <span class="relative flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-          </span>
-          Monitoramento em Tempo Real
+      {/* Left Column: Copy */}
+      <div class="text-center lg:text-left space-y-8">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 text-sm font-bold tracking-wide animate-fade-in shadow-sm">
+          <Flame class="w-4 h-4 bg-orange-500 text-white rounded-full p-0.5" />
+          <span class="uppercase">Ofertas Queimando Hoje</span>
         </div>
 
-        <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-tight">
-          O Preço Baixo que <br />
-          <span class="text-gradient">Você Procura</span> para <br />
-          Tudo o que Precisa.
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground leading-tight">
+          O Hardware dos seus Sonhos, pelo <span class="text-gradient">Menor Preço.</span>
         </h1>
 
-        <p class="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto md:mx-0">
-          Compare preços de Eletrônicos, Moda, Casa, Games e muito mais.
-          Acompanhe o histórico e garanta a melhor oferta em centenas de lojas.
+        <p class="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+          Monitoramos milhares de produtos em tempo real. Não perca tempo procurando cupom ou comparando abas. Nós fazemos isso por você.
         </p>
 
-        <div class="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
-          <a href="/search" class="w-full sm:w-auto px-8 py-4 rounded-full bg-primary text-primary-foreground font-bold text-lg hover:shadow-[0_0_20px_-5px_var(--primary)] transition-all transform hover:-translate-y-1">
-            Buscar Produtos
-          </a>
-          <a href="https://t.me/NerdOfertasBot" target="_blank" class="w-full sm:w-auto px-8 py-4 rounded-full bg-secondary/10 border border-secondary/20 text-secondary font-bold text-lg hover:bg-secondary/20 transition-all">
-            Canal de Ofertas
-          </a>
+        <div class="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+          <Button size="lg" class="w-full sm:w-auto text-lg h-14 px-8 rounded-full shadow-lg hover:shadow-primary/25 transition-all" asChild>
+            <a href="/search">
+              <Search class="w-5 h-5 mr-2" />
+              Buscar Ofertas
+            </a>
+          </Button>
+          <Button variant="outline" size="lg" class="w-full sm:w-auto text-lg h-14 px-8 rounded-full bg-background/50 backdrop-blur-sm" asChild>
+            <a href="https://t.me/NerdOfertasBot" target="_blank">
+               Canal no Telegram <ArrowRight class="w-5 h-5 ml-2" />
+            </a>
+          </Button>
+        </div>
+        
+        {/* Trust Badges */}
+        <div class="pt-8 flex items-center justify-center lg:justify-start gap-6 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+             <img src="https://logodownload.org/wp-content/uploads/2014/04/amazon-logo-2.png" alt="Amazon" class="h-6 object-contain" />
+             <img src="https://logodownload.org/wp-content/uploads/2017/11/kabum-logo.png" alt="Kabum" class="h-6 object-contain" />
+             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Shopee.svg/2560px-Shopee.svg.png" alt="Shopee" class="h-8 object-contain" />
         </div>
       </div>
 
-      <!-- Visual Content (Generic Product Showcase) -->
-      <div class="flex-1 w-full max-w-lg relative group">
-        <div class="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-2xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity"></div>
-        <div class="relative bg-card border border-border rounded-2xl p-6 shadow-2xl overflow-hidden aspect-square flex items-center justify-center">
-            
-            <!-- Mockup UI -->
-            <div class="text-center space-y-4">
-                <div class="text-6xl animate-bounce">📱</div>
-                <h3 class="text-2xl font-bold text-foreground">iPhone 15 Pro</h3>
-                <div class="flex justify-center gap-2 text-sm text-green-600 font-mono bg-green-100 dark:bg-green-900/30 dark:text-green-400 p-2 rounded">
-                    <span>R$ 4.899</span>
-                    <span>📉 -15%</span>
-                </div>
-            </div>
-
-        </div>
+      {/* Right Column: Trending Grid */}
+      <div class="relative">
+          {/* Decorative Elements */}
+          <div class="absolute -top-20 -right-20 w-[400px] h-[400px] bg-primary/20 blur-[100px] rounded-full pointer-events-none opacity-50"></div>
+          
+          <div class="grid grid-cols-2 gap-4 md:gap-6 relative">
+              {trendingProducts.map((product, i) => (
+                  <div class={`transform transition-all hover:-translate-y-2 duration-500 ${i === 1 ? 'lg:translate-y-12' : ''}`}>
+                      <ProductCard product={product} client:visible />
+                  </div>
+              ))}
+              
+              {/* Call to Action Card in Grid */}
+              <div class="aspect-square rounded-xl bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 flex flex-col justify-center items-center text-center shadow-xl lg:translate-y-12">
+                  <Flame class="w-12 h-12 text-orange-500 mb-4 animate-pulse-slow" />
+                  <h3 class="font-bold text-xl mb-2">Veja Mais</h3>
+                  <p class="text-sm text-gray-300 mb-4">Centenas de ofertas analisadas agora.</p>
+                  <Button variant="secondary" size="sm" asChild>
+                      <a href="/search">Explorar Tudo</a>
+                  </Button>
+              </div>
+          </div>
       </div>
 
     </div>

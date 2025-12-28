@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ProductCard from '../components/ProductCard';
+import Hero from '../components/Hero.astro';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import type { ScraperResult, DbServiceRpc } from '@nerd-ofertas/types';
 
 // Force SSR to handle dynamic data
@@ -47,11 +47,7 @@ let error = null;
 try {
     const db = Astro.locals.runtime?.env?.DB_SERVICE;
     if (db) {
-        // Try to fetch latest or "daily deals". Using search "oferta" as a proxy for now.
-        // Or better, if we have a getRecentProducts, use that.
-        // The RPC interface shows: searchProducts(query).
-        // Let's try to search for "rtx" or "ryzen" to get some content populated.
-        // Ideally we would have a getFeaturedProducts() RPC.
+        // Try to fetch latest or "daily deals".
         const searchResults = await (db as unknown as DbServiceRpc).searchProducts("rtx");
         if (searchResults && searchResults.length > 0) {
             products = searchResults;
@@ -74,44 +70,8 @@ try {
 	description="Encontre o melhor preço para Placas de Vídeo, Processadores, Consoles e Jogos. Monitoramos Kabum, Amazon, Pichau, Terabyte e muito mais em tempo real."
 >
 	<main class="min-h-screen pb-16 bg-background">
-        {/* Clean Hero Section */}
-		<section class="py-20 px-4 text-center bg-zinc-50 dark:bg-zinc-900 border-b border-border/40">
-            <div class="container mx-auto max-w-4xl space-y-6">
-                <Badge variant="outline" class="mb-4 border-primary/20 text-primary bg-primary/5 px-4 py-1 rounded-full text-sm">
-                    Beta v1.0
-                </Badge>
-                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground">
-                    Encontre o <span class="text-primary">Melhor Preço</span> para seu Setup
-                </h1>
-                <p class="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Monitoramos Kabum, Amazon, Terabyte e Mercado Livre em tempo real para você não pagar caro nunca mais.
-                </p>
-                
-                <div class="max-w-xl mx-auto mt-8 relative group">
-                    <form action="/search" method="GET" class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                        </div>
-                        <input 
-                            type="text" 
-                            name="q"
-                            placeholder="Busque por RTX 4060, Ryzen 7, PS5..." 
-                            class="w-full h-14 pl-12 pr-4 rounded-full border border-input bg-background/50 backdrop-blur-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-lg shadow-sm transition-shadow hover:shadow-md"
-                        />
-                        <Button type="submit" size="lg" class="absolute right-2 top-2 rounded-full px-6 h-10">
-                            Buscar
-                        </Button>
-                    </form>
-                </div>
-
-                <div class="flex flex-wrap justify-center gap-2 mt-8 text-sm text-muted-foreground">
-                    <span>Populares:</span>
-                    <a href="/search?q=RTX%204060" class="hover:text-primary transition-colors underline decoration-dotted">RTX 4060</a>
-                    <a href="/search?q=Ryzen%207" class="hover:text-primary transition-colors underline decoration-dotted">Ryzen 5700X3D</a>
-                    <a href="/search?q=PS5" class="hover:text-primary transition-colors underline decoration-dotted">PlayStation 5</a>
-                </div>
-            </div>
-		</section>
+        
+        <Hero />
 		
 		<section class="container mx-auto px-4 py-16">
             <div class="flex items-center justify-between mb-8">

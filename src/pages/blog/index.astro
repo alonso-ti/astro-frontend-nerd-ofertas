@@ -1,111 +1,73 @@
 ---
-import BaseHead from '../../components/BaseHead.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
-import FormattedDate from '../../components/FormattedDate.astro';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 const posts = (await getCollection('blog')).sort(
-	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-		<style>
-			main {
-				width: 960px;
-			}
-			ul {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 2rem;
-				list-style-type: none;
-				margin: 0;
-				padding: 0;
-			}
-			ul li {
-				width: calc(50% - 1rem);
-			}
-			ul li * {
-				text-decoration: none;
-				transition: 0.2s ease;
-			}
-			ul li:first-child {
-				width: 100%;
-				margin-bottom: 1rem;
-				text-align: center;
-			}
-			ul li:first-child img {
-				width: 100%;
-			}
-			ul li:first-child .title {
-				font-size: 2.369rem;
-			}
-			ul li img {
-				margin-bottom: 0.5rem;
-				border-radius: 12px;
-			}
-			ul li a {
-				display: block;
-			}
-			.title {
-				margin: 0;
-				color: rgb(var(--black));
-				line-height: 1;
-			}
-			.date {
-				margin: 0;
-				color: rgb(var(--gray));
-			}
-			ul li a:hover h4,
-			ul li a:hover .date {
-				color: rgb(var(--accent));
-			}
-			ul a:hover img {
-				box-shadow: var(--box-shadow);
-			}
-			@media (max-width: 720px) {
-				ul {
-					gap: 0.5em;
-				}
-				ul li {
-					width: 100%;
-					text-align: center;
-				}
-				ul li:first-child {
-					margin-bottom: 0;
-				}
-				ul li:first-child .title {
-					font-size: 1.563em;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<Header />
-		<main>
-			<section>
-				<ul>
-					{
-						posts.map((post) => (
-							<li>
-								<a href={`/blog/${post.id}/`}>
-									<img width={720} height={360} src={post.data.heroImage} alt="" />
-									<h4 class="title">{post.data.title}</h4>
-									<p class="date">
-										<FormattedDate date={post.data.pubDate} />
-									</p>
-								</a>
-							</li>
-						))
-					}
-				</ul>
-			</section>
-		</main>
-		<Footer />
-	</body>
-</html>
+<Layout 
+    title="Blog & Dicas | Nerd Ofertas"
+    description="Análises, guias de compra e dicas para economizar no seu setup gamer."
+>
+	<main class="container mx-auto px-4 py-12">
+        <div class="mb-12 text-center max-w-2xl mx-auto">
+             <Badge variant="outline" class="mb-4 text-primary bg-primary/10 border-primary/20">Conteúdo Exclusivo</Badge>
+             <h1 class="text-4xl font-extrabold tracking-tight mb-4">Guias & Análises</h1>
+             <p class="text-muted-foreground text-lg">
+                 Descubra qual a melhor placa de vídeo para seu orçamento e aprenda a economizar de verdade.
+             </p>
+        </div>
+
+		<section>
+            {posts.length === 0 ? (
+                <div class="text-center py-20 border border-dashed border-border rounded-xl">
+                    <p class="text-muted-foreground">Em breve, artigos incríveis por aqui!</p>
+                </div>
+            ) : (
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {posts.map((post) => (
+                        <a href={`/blog/${post.slug}/`} class="group">
+                             <Card class="h-full overflow-hidden hover:shadow-lg transition-all hover:border-primary/50">
+                                {post.data.heroImage && (
+                                    <div class="aspect-video overflow-hidden">
+                                        <img 
+                                            src={post.data.heroImage} 
+                                            alt="" 
+                                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                    </div>
+                                )}
+                                <CardHeader>
+                                    <div class="flex gap-2 mb-2">
+                                        {post.data.tags?.slice(0, 2).map(tag => (
+                                            <Badge variant="secondary" class="text-[10px]">{tag}</Badge>
+                                        ))}
+                                    </div>
+                                    <CardTitle class="leading-tight group-hover:text-primary transition-colors">
+                                        {post.data.title}
+                                    </CardTitle>
+                                    <CardDescription class="line-clamp-2">
+                                        {post.data.description}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardFooter class="text-xs text-muted-foreground">
+                                    <time datetime={post.data.pubDate.toISOString()}>
+                                        {post.data.pubDate.toLocaleDateString('pt-BR', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                        })}
+                                    </time>
+                                </CardFooter>
+                             </Card>
+                        </a>
+                    ))}
+                </div>
+            )}
+		</section>
+	</main>
+</Layout>
