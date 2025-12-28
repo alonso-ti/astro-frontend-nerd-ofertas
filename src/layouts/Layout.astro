@@ -6,22 +6,56 @@ import Footer from '../components/Footer.astro';
 interface Props {
 	title: string;
     description?: string;
+    image?: string;
+    type?: 'website' | 'article' | 'product';
+    url?: string;
 }
 
-const { title, description = "Compare preços de eletrônicos, casa, moda e muito mais." } = Astro.props;
+const { 
+    title, 
+    description = "Compare preços de eletrônicos, casa, moda e muito mais. Nerd Ofertas encontra as melhores promoções para você.",
+    image = "/og-image.jpg",
+    type = "website",
+    url = Astro.url.href
+} = Astro.props;
+
+const siteName = "Nerd Ofertas";
+const twitterHandle = "@nerdofertas"; // Placeholder
 ---
 
 <!doctype html>
 <html lang="pt-BR">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="description" content={description} />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>{title} | Nerd Ofertas</title>
         
-        <!-- Preload Inter Font -->
+        {/* Primary Meta Tags */}
+		<title>{title} | {siteName}</title>
+		<link rel="canonical" href={url} />
+        <meta name="title" content={`${title} | ${siteName}`} />
+		<meta name="description" content={description} />
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="mobile-web-app-capable" content="yes" />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content={type} />
+        <meta property="og:url" content={url} />
+        <meta property="og:title" content={`${title} | ${siteName}`} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={image} />
+        <meta property="og:site_name" content={siteName} />
+        <meta property="og:locale" content="pt_BR" />
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={url} />
+        <meta property="twitter:title" content={`${title} | ${siteName}`} />
+        <meta property="twitter:description" content={description} />
+        <meta property="twitter:image" content={image} />
+        
+        {/* Preload Inter Font */}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">

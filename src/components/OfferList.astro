@@ -1,7 +1,6 @@
 ---
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ExternalLink, Store } from "lucide-react";
+import OfferCard from "@/components/OfferCard";
+import { ChevronDown } from "lucide-react";
 import type { ScraperResult } from "@nerd-ofertas/types";
 
 interface Props {
@@ -10,96 +9,55 @@ interface Props {
 
 const { offers } = Astro.props;
 
-// Helper to format price
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(price / 100);
-};
-
 // Sort by price ascending
 const sortedOffers = [...offers].sort((a, b) => a.price - b.price);
 const bestPrice = sortedOffers[0]?.price;
 ---
 
-<div class="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-  {/* Header (Desktop only) */}
-  <div class="hidden md:grid grid-cols-12 gap-4 p-4 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border">
-    <div class="col-span-6">Loja / Produto</div>
-    <div class="col-span-3 text-right">Preço</div>
-    <div class="col-span-3 text-right">Ação</div>
+<div class="space-y-4">
+  {/* Comparison Header - Buscapé Style */}
+  <div class="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-xl">
+    <div class="flex items-center gap-3">
+      <h3 class="text-lg font-bold text-foreground">
+        Compare preços em {offers.length} {offers.length === 1 ? 'loja' : 'lojas'}
+      </h3>
+      <div class="hidden md:block text-xs text-muted-foreground">
+        Ordenado por menor preço
+      </div>
+    </div>
+    
+    {/* Future: Add sorting dropdown */}
+    <button 
+      class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
+      aria-label="Opções de ordenação"
+      disabled
+    >
+      <span class="hidden sm:inline">Ordenar</span>
+      <ChevronDown class="w-4 h-4" />
+    </button>
   </div>
 
-  <div class="divide-y divide-border">
+  {/* Offers Grid */}
+  <div class="space-y-3">
     {sortedOffers.map((offer, index) => {
       const isBestPrice = offer.price === bestPrice;
-      const discount = offer.oldPrice && offer.oldPrice > offer.price 
-        ? Math.round(((offer.oldPrice - offer.price) / offer.oldPrice) * 100) 
-        : 0;
-
+      const rank = index + 1;
+      
       return (
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 items-center group hover:bg-muted/50 transition-colors">
-          
-          {/* Store & Info */}
-          <div class="col-span-12 md:col-span-6 flex items-center gap-4">
-            <div class="flex-shrink-0 w-12 h-12 bg-white rounded-lg border border-border flex items-center justify-center p-2 relative">
-               {/* Placeholder logic for Logos - in real app, map marketplace_id to assets */}
-               {offer.seller?.name?.toLowerCase().includes('amazon') ? (
-                  <img src="https://logodownload.org/wp-content/uploads/2014/04/amazon-logo-2.png" alt="Amazon" class="max-h-full object-contain" />
-               ) : offer.seller?.name?.toLowerCase().includes('kabum') ? (
-                  <img src="https://logodownload.org/wp-content/uploads/2017/11/kabum-logo.png" alt="KaBuM!" class="max-h-full object-contain" />
-               ) : (
-                  <Store class="text-muted-foreground w-6 h-6" />
-               )}
-               {isBestPrice && (
-                   <div class="absolute -top-2 -right-2 bg-green-600 text-white text-[10px] px-1.5 rounded-full font-bold shadow-sm">
-                       TOP
-                   </div>
-               )}
-            </div>
-            
-            <div class="min-w-0">
-               <div class="flex items-center gap-2 mb-0.5">
-                   <span class="font-bold text-sm text-foreground">{offer.seller?.name}</span>
-                   {offer.seller?.isOfficial && <Badge variant="secondary" class="text-[10px] px-1 h-4">Oficial</Badge>}
-               </div>
-               <p class="text-xs text-muted-foreground truncate max-w-[200px] md:max-w-xs" title={offer.title}>
-                   {offer.title}
-               </p>
-            </div>
-          </div>
-
-          {/* Price */}
-          <div class="col-span-6 md:col-span-3 md:text-right flex flex-col justify-center">
-            {offer.oldPrice && offer.oldPrice > offer.price && (
-                <span class="text-xs text-muted-foreground line-through">
-                    {formatPrice(offer.oldPrice)}
-                </span>
-            )}
-            <div class="flex items-center md:justify-end gap-2">
-                <span class={`font-bold text-lg ${isBestPrice ? 'text-success' : 'text-foreground'}`}>
-                    {formatPrice(offer.price)}
-                </span>
-                {discount > 0 && (
-                    <Badge variant="outline" class="text-[10px] text-green-600 border-green-200 bg-green-50">
-                        -{discount}%
-                    </Badge>
-                )}
-            </div>
-          </div>
-
-          {/* Action */}
-          <div class="col-span-6 md:col-span-3 flex justify-end">
-            <Button asChild size="sm" className={`w-full md:w-auto font-bold ${isBestPrice ? 'bg-success hover:bg-green-700 text-white' : ''}`}>
-               <a href={offer.url} target="_blank" rel="noopener noreferrer">
-                  Ver Loja <ExternalLink class="w-3 h-3 ml-2" />
-               </a>
-            </Button>
-          </div>
-
-        </div>
+        <OfferCard
+          offer={offer}
+          isBestPrice={isBestPrice}
+          rank={rank}
+        />
       );
     })}
   </div>
+
+  {/* Empty State */}
+  {offers.length === 0 && (
+    <div class="text-center py-12 bg-muted/20 rounded-xl border border-border border-dashed">
+      <p class="text-muted-foreground">Nenhuma oferta disponível no momento.</p>
+      <p class="text-sm text-muted-foreground/70 mt-1">Volte em breve para conferir novos preços.</p>
+    </div>
+  )}
 </div>

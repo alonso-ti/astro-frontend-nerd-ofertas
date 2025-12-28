@@ -2,11 +2,11 @@
 import Layout from '../../layouts/Layout.astro';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ExternalLink, TrendingDown, Bell, Share2 } from 'lucide-react';
+import { ExternalLink, TrendingDown, Bell, Share2, AlertTriangle } from 'lucide-react';
 import type { DbServiceRpc, ProductDetails } from '@nerd-ofertas/types';
 import PriceHistoryChart from '@/components/PriceHistoryChart';
 import OfferList from '@/components/OfferList.astro';
+import FAQSection from '@/components/FAQSection';
 
 export const prerender = false;
 
@@ -42,19 +42,85 @@ const mainOffer = product?.offers.reduce((prev, curr) => (prev.price < curr.pric
 const mainDiscount = mainOffer && mainOffer.oldPrice && mainOffer.price < mainOffer.oldPrice
     ? Math.round(((mainOffer.oldPrice - mainOffer.price) / mainOffer.oldPrice) * 100)
     : 0;
+
+// "Bad Price" Intelligence Logic
+// Simple logic: if current price is > 10% of 40-day average (mock logic for now as we don't have avg in generic ProductDetails yet, using average of current offers as proxy)
+const averagePrice = product && product.offers.length > 0 
+    ? product.offers.reduce((acc, curr) => acc + curr.price, 0) / product.offers.length 
+    : 0;
+const isBadPrice = product && averagePrice > 0 && product.lowestPrice > (averagePrice * 1.1);
+const badPriceDiff = product ? product.lowestPrice - averagePrice : 0;
+
+// Schema.org Structured Data (JSON-LD)
+const schemaData = product ? {
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": product.title,
+  "image": product.imageUrl ? [product.imageUrl] : [],
+  "description": product.description ? product.description.substring(0, 160) : `Compre ${product.title} pelo menor preço.`,
+  "sku": product.id,
+  "offers": {
+    "@type": "AggregateOffer",
+    "url": Astro.url.href,
+    "priceCurrency": "BRL",
+    "lowPrice": (product.lowestPrice / 100).toFixed(2),
+    "offerCount": product.offers.length,
+    "availability": "https://schema.org/InStock"
+  }
+} : null;
+
+// BreadcrumbList Schema
+const breadcrumbSchema = product ? {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+    "@type": "ListItem",
+    "position": 1,
+    "name": "Home",
+    "item": Astro.site ? new URL(Astro.site).href : "https://nerdofertas.com.br"
+  },{
+    "@type": "ListItem",
+    "position": 2,
+    "name": product.category || "Produto",
+    "item": `${Astro.site ? new URL(Astro.site).href : "https://nerdofertas.com.br"}/search?q=${product.category}`
+  },{
+    "@type": "ListItem",
+    "position": 3,
+    "name": product.title
+  }]
+} : null;
 ---
 
-<Layout title={product?.title || "Produto | Nerd Ofertas"}>
-  <main class="min-h-screen bg-background pb-20">
+<Layout 
+    title={product?.title || "Produto"} 
+    description={`Encontre o menor preço para ${product?.title}. Compare ofertas de ${product?.offers.length} lojas.`}
+    image={product?.imageUrl}
+    type="product"
+>
     
-    {/* Breadcrumb / Header Area could go here */}
+  {/* JSON-LD Structured Data */}
+  {schemaData && (
+    <script type="application/ld+json" set:html={JSON.stringify(schemaData)} />
+  )}
+  {breadcrumbSchema && (
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  )}
+
+  {/* Preload Main Image for LCP */}
+  {product?.imageUrl && (
+      <link rel="preload" as="image" href={product.imageUrl} slot="head" />
+  )}
+
+  <main class="min-h-screen bg-background pb-32 lg:pb-20"> {/* Added pb-32 for mobile footer clearance */}
+    
+    {/* Breadcrumb / Header Area */}
     <div class="border-b border-border bg-card">
-        <div class="container mx-auto px-4 py-4 flex items-center text-sm text-muted-foreground">
+        <div class="container mx-auto px-4 py-4 flex items-center text-sm text-muted-foreground whitespace-nowrap overflow-x-auto no-scrollbar">
             <a href="/" class="hover:text-primary transition-colors">Home</a>
             <span class="mx-2">/</span>
             <a href="/search" class="hover:text-primary transition-colors">Produtos</a>
             <span class="mx-2">/</span>
-            <span class="text-foreground font-medium truncate max-w-[200px]">{product?.title}</span>
+            <span class="text-foreground font-medium truncate">{product?.title}</span>
         </div>
     </div>
 
@@ -75,6 +141,10 @@ const mainDiscount = mainOffer && mainOffer.oldPrice && mainOffer.price < mainOf
                           src={product?.imageUrl || "/placeholder.svg"} 
                           alt={product?.title}
                           class="max-w-full max-h-full object-contain relative z-10 transition-transform duration-500 hover:scale-105"
+                          width="500"
+                          height="500"
+                          loading="eager"
+                          decoding="async"
                        />
                        {mainDiscount > 0 && (
                            <Badge class="absolute top-4 left-4 h-8 px-3 bg-destructive text-white text-sm font-bold shadow-md">
@@ -98,7 +168,7 @@ const mainDiscount = mainOffer && mainOffer.oldPrice && mainOffer.price < mainOf
                            </Button>
                        </div>
                        
-                      <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground leading-tight mb-4">
+                      <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground leading-snug mb-4">
                           {product?.title}
                       </h1>
                       
@@ -111,8 +181,21 @@ const mainDiscount = mainOffer && mainOffer.oldPrice && mainOffer.price < mainOf
                       </div>
                   </div>
 
-                  {/* Pricing Box (Main Offer) */}
-                  <div class="bg-card border border-border rounded-xl p-6 shadow-sm relative overflow-hidden group">
+                  {/* "Bad Price" Intelligence Indicator */}
+                  {isBadPrice && (
+                      <div class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/50 rounded-lg p-4 flex items-start gap-3">
+                          <AlertTriangle class="w-5 h-5 text-orange-600 dark:text-orange-500 shrink-0 mt-0.5" />
+                          <div>
+                              <h3 class="font-bold text-orange-700 dark:text-orange-400 text-sm">Preço acima da média</h3>
+                              <p class="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1">
+                                  Este produto está cerca de <strong>{formatPrice(badPriceDiff)}</strong> mais caro que o normal. Recomendamos criar um alerta de preço.
+                              </p>
+                          </div>
+                      </div>
+                  )}
+
+                  {/* Pricing Box (Main Offer) - Defines Desktop View */}
+                  <div class="hidden lg:block bg-card border border-border rounded-xl p-6 shadow-sm relative overflow-hidden group">
                       <div class="absolute top-0 right-0 p-6 opacity-10 pointer-events-none text-9xl font-black text-muted-foreground select-none">
                           %
                       </div>
@@ -149,6 +232,19 @@ const mainDiscount = mainOffer && mainOffer.oldPrice && mainOffer.price < mainOf
                           </div>
                       </div>
                   </div>
+                  
+                  {/* Mobile Pricing (Inline) */}
+                  <div class="lg:hidden block">
+                       <p class="text-sm text-muted-foreground mb-1">Melhor preço hoje em <span class="font-bold text-foreground">{mainOffer?.seller?.name}</span></p>
+                       <div class="flex items-end gap-3 mb-2">
+                            {mainDiscount > 0 && (
+                                <span class="bg-destructive/10 text-destructive text-xs font-bold px-2 py-1 rounded">-{mainDiscount}%</span>
+                            )}
+                            <span class="text-3xl font-extrabold text-success">
+                                {formatPrice(product?.lowestPrice || 0)}
+                            </span>
+                       </div>
+                  </div>
 
                   {/* Price History & Intelligence */}
                   <div class="space-y-4">
@@ -176,10 +272,37 @@ const mainDiscount = mainOffer && mainOffer.oldPrice && mainOffer.price < mainOf
                          </div>
                      </div>
                   )}
+                  
+                  {/* FAQ Section (Buscapé Style SEO) */}
+                  {product && (
+                    <FAQSection client:visible productTitle={product.title} category={product.category || "Hardware"} />
+                  )}
 
               </div>
           </div>
       )}
     </div>
+
+    {/* FIXED BOTTOM BAR (MOBILE ONLY) - Conversion Booster */}
+    {product && !error && (
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-border z-50 lg:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <div class="flex items-center gap-3">
+                <div class="flex-1">
+                    <span class="text-xs text-muted-foreground block">Melhor preço</span>
+                    <div class="flex items-baseline gap-2">
+                         <span class="text-xl font-bold text-success">{formatPrice(product.lowestPrice)}</span>
+                         {mainDiscount > 0 && <span class="text-xs text-muted-foreground line-through">{formatPrice(mainOffer?.oldPrice || 0)}</span>}
+                    </div>
+                </div>
+                <Button size="lg" class="flex-1 font-bold shadow-lg bg-primary text-white" asChild>
+                    <a href={mainOffer?.url} target="_blank" rel="noopener noreferrer">
+                        Ir à Loja
+                        <ExternalLink class="w-4 h-4 ml-2" />
+                    </a>
+                </Button>
+            </div>
+        </div>
+    )}
+
   </main>
 </Layout>
