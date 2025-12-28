@@ -7,6 +7,8 @@ import type { DbServiceRpc, ProductDetails } from '@nerd-ofertas/types';
 import PriceHistoryChart from '@/components/PriceHistoryChart';
 import OfferList from '@/components/OfferList.astro';
 import FAQSection from '@/components/FAQSection';
+import ShareButton from '@/components/ShareButton';
+import PriceAlertButton from '@/components/PriceAlertButton';
 
 export const prerender = false;
 
@@ -163,9 +165,7 @@ const breadcrumbSchema = product ? {
                            <Badge variant="secondary" class="border-border text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wide text-muted-foreground">
                               {product?.category || "Hardware"}
                            </Badge>
-                           <Button variant="ghost" size="icon" class="text-muted-foreground hover:text-foreground">
-                               <Share2 class="w-4 h-4" />
-                           </Button>
+                           <ShareButton client:load title={product?.title || ""} description={`Encontre o menor preço para ${product?.title}. Compare ofertas de ${product?.offers.length} lojas.`} />
                        </div>
                        
                       <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground leading-snug mb-4">
@@ -225,11 +225,14 @@ const breadcrumbSchema = product ? {
                                       Ir para a Loja
                                   </a>
                               </Button>
-                              <Button variant="outline" size="lg" class="w-full sm:w-auto h-12 font-semibold">
-                                  <Bell class="w-5 h-5 mr-2" />
-                                  Criar Alerta
-                              </Button>
-                          </div>
+                               <PriceAlertButton 
+                                 client:load 
+                                 productId={product?.id || id || ""} 
+                                 productTitle={product?.title || ""}
+                                 currentPrice={product?.lowestPrice || 0}
+                                 className="w-full sm:w-auto"
+                               />
+                           </div>
                       </div>
                   </div>
                   
