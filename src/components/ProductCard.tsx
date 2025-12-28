@@ -23,9 +23,12 @@ export default function ProductCard({ product }: ProductCardProps) {
             ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
             : 0;
 
+    const internalId = (product as any).id || (product.meta as any)?.id;
+    const detailsLink = internalId ? `/product/${internalId}` : product.url;
+
     return (
-        <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
-            <div className="relative aspect-square p-4 bg-white dark:bg-gray-100 rounded-t-xl overflow-hidden flex items-center justify-center">
+        <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300 group/card">
+            <a href={detailsLink} className="block relative aspect-square p-4 bg-white dark:bg-gray-100 rounded-t-xl overflow-hidden flex items-center justify-center cursor-pointer">
                 {discount > 0 && (
                     <Badge variant="destructive" className="absolute top-2 right-2 z-10">
                         -{discount}%
@@ -38,7 +41,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                     className="object-contain max-h-full max-w-full hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                 />
-            </div>
+            </a>
 
             <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-start mb-2">
@@ -54,9 +57,11 @@ export default function ProductCard({ product }: ProductCardProps) {
                         <span className="text-xs text-red-500 font-medium">Esgotado</span>
                     )}
                 </div>
-                <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]" title={product.title}>
-                    {product.title}
-                </CardTitle>
+                <a href={detailsLink} className="hover:underline decoration-primary">
+                    <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]" title={product.title}>
+                        {product.title}
+                    </CardTitle>
+                </a>
             </CardHeader>
 
             <CardContent className="p-4 pt-1 flex-grow">
