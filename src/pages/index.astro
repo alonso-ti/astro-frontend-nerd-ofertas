@@ -4,7 +4,7 @@ import Hero from '../components/Hero.astro';
 import ProductCard from '../components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { ScraperResult } from '@nerd-ofertas/types';
+import type { ScraperResult, DbServiceRpc } from '@nerd-ofertas/types';
 
 // Force SSR to handle dynamic data
 export const prerender = false;
@@ -53,7 +53,7 @@ try {
         // The RPC interface shows: searchProducts(query).
         // Let's try to search for "rtx" or "ryzen" to get some content populated.
         // Ideally we would have a getFeaturedProducts() RPC.
-        const searchResults = await db.searchProducts("rtx");
+        const searchResults = await (db as unknown as DbServiceRpc).searchProducts("rtx");
         if (searchResults && searchResults.length > 0) {
             products = searchResults;
         } else {
@@ -65,7 +65,7 @@ try {
     }
 } catch (e) {
     console.error("Failed to fetch products:", e);
-    error = e.message;
+    error = (e as any).message;
     products = mockProducts; // Fallback on error
 }
 ---

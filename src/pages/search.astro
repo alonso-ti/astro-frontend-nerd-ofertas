@@ -4,7 +4,7 @@ import ProductCard from '../components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search as SearchIcon } from 'lucide-react';
-import type { ScraperResult } from '@nerd-ofertas/types';
+import type { ScraperResult, DbServiceRpc } from '@nerd-ofertas/types';
 
 export const prerender = false;
 
@@ -16,7 +16,7 @@ if (q) {
   try {
       const db = Astro.locals.runtime?.env?.DB_SERVICE;
       if (db) {
-          const searchResults = await db.searchProducts(q);
+          const searchResults = await (db as unknown as DbServiceRpc).searchProducts(q);
           if (searchResults) {
               products = searchResults;
           }
@@ -37,7 +37,7 @@ if (q) {
           name="q" 
           defaultValue={q} 
           placeholder="Buscar placas de vídeo, processadores..." 
-          class="bg-background"
+          className="bg-background"
         />
         <Button type="submit">
           <SearchIcon className="h-4 w-4 mr-2" />
