@@ -17,6 +17,10 @@
 		{
 			"binding": "API_GATEWAY",
 			"service": "api-gateway"
+		},
+		{
+			"binding": "DB_SERVICE",
+			"service": "db-service"
 		}
 	]
 }
