@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ProductCard from '../components/ProductCard';
+import SearchFilters from '../components/SearchFilters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search as SearchIcon } from 'lucide-react';
@@ -9,6 +10,22 @@ import type { ScraperResult, DbServiceRpc } from '@nerd-ofertas/types';
 export const prerender = false;
 
 const q = Astro.url.searchParams.get('q') || '';
+
+// Parse filter parameters from URL for SEO
+const categoriesParam = Astro.url.searchParams.get('categories');
+const storesParam = Astro.url.searchParams.get('stores');
+const minPriceParam = Astro.url.searchParams.get('minPrice');
+const maxPriceParam = Astro.url.searchParams.get('maxPrice');
+const sortParam = Astro.url.searchParams.get('sort');
+
+const initialFilters = {
+  categories: categoriesParam ? categoriesParam.split(',') : [],
+  stores: storesParam ? storesParam.split(',') : [],
+  minPrice: minPriceParam ? parseFloat(minPriceParam) : undefined,
+  maxPrice: maxPriceParam ? parseFloat(maxPriceParam) : undefined,
+  sortBy: (sortParam as any) || 'relevance',
+};
+
 let products: ScraperResult[] = [];
 let error = null;
 
@@ -30,16 +47,17 @@ if (q) {
 
 <Layout title={`Busca: ${q} | Nerd Ofertas`}>
   <main class="container mx-auto px-4 py-8 min-h-screen">
+    {/* Search Bar */}
     <div class="mb-8">
-      <form action="/search" method="get" class="flex gap-2 max-w-xl mx-auto">
+      <form action="/search" method="get" class="flex gap-2 max-w-2xl mx-auto">
         <Input 
           type="search" 
           name="q" 
-          defaultValue={q} 
+          value={q} 
           placeholder="Buscar placas de vídeo, processadores..." 
-          className="bg-background"
+          className="bg-background text-base"
         />
-        <Button type="submit">
+        <Button type="submit" size="lg">
           <SearchIcon className="h-4 w-4 mr-2" />
           Buscar
         </Button>
@@ -47,29 +65,140 @@ if (q) {
     </div>
 
     {q && (
-      <h1 class="text-2xl font-bold mb-6">
-        Resultados para "{q}"
-      </h1>
-    )}
+      <>
+        <h1 class="text-3xl font-bold mb-6">
+          Resultados para "{q}"
+        </h1>
 
-    {error && (
-        <div class="p-4 rounded-lg bg-destructive/10 text-destructive mb-6">
-            {error}
+        {/* Search Results with Filters */}
+        <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          {/* Sidebar Filters */}
+          <aside class="lg:sticky lg:top-4 lg:self-start">
+            <SearchFilters 
+              client:load
+              initialFilters={initialFilters}
+              onFilterChange={(filters) => {
+                // Filters are now handled via URL in the component
+                const event = new CustomEvent('filtersChanged', { detail: filters });
+                window.dispatchEvent(event);
+              }}
+            />
+          </aside>
+
+          {/* Results Grid */}
+          <div id="resultsContainer">
+            {error && (
+              <div class="p-4 rounded-lg bg-destructive/10 text-destructive mb-6">
+                {error}
+              </div>
+            )}
+
+            {products.length > 0 ? (
+              <>
+                <div class="mb-4 text-sm text-muted-foreground">
+                  {products.length} {products.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
+                </div>
+                
+                <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {products.map((product) => (
+                    <div class="product-card" 
+                         data-category={product.category || 'Outros'}
+                         data-price={product.price}
+                         data-store={product.seller?.name || 'Unknown'}>
+                      <ProductCard product={product} client:load />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              !error && (
+                <div class="text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">
+                  <p class="text-lg">Nenhum produto encontrado para "{q}".</p>
+                  <p class="text-sm mt-2">Tente usar palavras-chave diferentes.</p>
+                </div>
+              )
+            )}
+          </div>
         </div>
+      </>
     )}
 
-    {products.length > 0 ? (
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.map((product) => (
-            <ProductCard product={product} client:load />
-        ))}
+    {/* Empty State */}
+    {!q && (
+      <div class="text-center py-20">
+        <SearchIcon className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+        <h2 class="text-2xl font-bold mb-2">Buscar Produtos</h2>
+        <p class="text-muted-foreground">
+          Digite o nome do produto que você está procurando
+        </p>
       </div>
-    ) : (
-      q && !error && (
-        <div class="text-center py-12 text-muted-foreground">
-          Nenhum produto encontrado para "{q}".
-        </div>
-      )
     )}
   </main>
+
+  <script>
+    // Client-side filtering logic
+    window.addEventListener('filtersChanged', (event: any) => {
+      const filters = event.detail;
+      const grid = document.getElementById('productsGrid');
+      if (!grid) return;
+
+      const cards = Array.from(grid.querySelectorAll('.product-card')) as HTMLElement[];
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const category = card.getAttribute('data-category') || '';
+        const price = parseInt(card.getAttribute('data-price') || '0');
+        const store = card.getAttribute('data-store') || '';
+
+        let show = true;
+
+        // Category filter
+        if (filters.categories.length > 0 && !filters.categories.includes(category)) {
+          show = false;
+        }
+
+        // Price filter
+        if (filters.minPrice && price < filters.minPrice * 100) {
+          show = false;
+        }
+        if (filters.maxPrice && price > filters.maxPrice * 100) {
+          show = false;
+        }
+
+        // Store filter
+        if (filters.stores.length > 0 && !filters.stores.includes(store)) {
+          show = false;
+        }
+
+        card.style.display = show ? 'block' : 'none';
+        if (show) visibleCount++;
+      });
+
+      // Update results count
+      const resultsContainer = document.getElementById('resultsContainer');
+      const countElement = resultsContainer?.querySelector('.text-muted-foreground');
+      if (countElement) {
+        countElement.textContent = `${visibleCount} ${visibleCount === 1 ? 'produto encontrado' : 'produtos encontrados'}`;
+      }
+
+      // Apply sorting
+      if (filters.sortBy && filters.sortBy !== 'relevance') {
+        const sortedCards = cards.filter(card => card.style.display !== 'none').sort((a, b) => {
+          const priceA = parseInt(a.getAttribute('data-price') || '0');
+          const priceB = parseInt(b.getAttribute('data-price') || '0');
+
+          switch (filters.sortBy) {
+            case 'price_asc':
+              return priceA - priceB;
+            case 'price_desc':
+              return priceB - priceA;
+            default:
+              return 0;
+          }
+        });
+
+        sortedCards.forEach(card => grid.appendChild(card));
+      }
+    });
+  </script>
 </Layout>

@@ -1,26 +1,16 @@
 {
 	"name": "astro-frontend-nerd-ofertas",
-	"compatibility_date": "2025-10-08",
-	"compatibility_flags": [
-		"nodejs_compat"
+	"compatibility_date": "2024-01-01",
+	"analytics_engine_datasets": [
+		{
+			"binding": "ANALYTICS",
+			"dataset": "nerd_ofertas_clicks"
+		}
 	],
-	"main": "./dist/_worker.js/index.js",
-	"assets": {
-		"directory": "./dist",
-		"binding": "ASSETS"
-	},
-	"observability": {
-		"enabled": true
-	},
-	"upload_source_maps": true,
-	"services": [
+	"analytics_engine_datasets": [
 		{
-			"binding": "API_GATEWAY",
-			"service": "api-gateway"
-		},
-		{
-			"binding": "DB_SERVICE",
-			"service": "db-service"
+			"binding": "ANALYTICS",
+			"dataset": "nerd_ofertas_clicks"
 		}
 	]
 }

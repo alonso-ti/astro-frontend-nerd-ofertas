@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { Bell, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Bell, BellOff, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { useState } from 'react';
 
 interface PriceAlertButtonProps {
     productId: string;
@@ -11,165 +12,131 @@ interface PriceAlertButtonProps {
     className?: string;
 }
 
+const DB_SERVICE_URL = import.meta.env.PUBLIC_DB_SERVICE_URL || 'http://localhost:8787';
+
 export default function PriceAlertButton({
     productId,
     productTitle,
     currentPrice,
-    className,
+    className = ''
 }: PriceAlertButtonProps) {
-    const [showForm, setShowForm] = useState(false);
-    const [targetPrice, setTargetPrice] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [created, setCreated] = useState(false);
     const [email, setEmail] = useState('');
-    const [isSubscribed, setIsSubscribed] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [targetPrice, setTargetPrice] = useState(Math.floor(currentPrice * 0.9) / 100); // 10% discount
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL',
-        }).format(price / 100);
+        }).format(price);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
+    const handleCreateAlert = async () => {
+        if (!email || !targetPrice) {
+            alert('Preencha todos os campos');
+            return;
+        }
 
-        // TODO: Integrate with backend API
-        // Simulating API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsCreating(true);
 
-        setIsSubscribed(true);
-        setIsLoading(false);
-        setShowForm(false);
+        try {
+            const response = await fetch(`${DB_SERVICE_URL}/alerts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    productId,
+                    userEmail: email,
+                    targetPrice: Math.floor(targetPrice * 100), // Convert to cents
+                    currentPrice,
+                }),
+            });
 
-        // Reset form after 3 seconds
-        setTimeout(() => {
-            setIsSubscribed(false);
-        }, 3000);
-    };
+            if (!response.ok) throw new Error('Failed to create alert');
 
-    const toggleForm = () => {
-        setShowForm(!showForm);
-        if (showForm) {
-            setTargetPrice('');
-            setEmail('');
+            setCreated(true);
+            setTimeout(() => {
+                setCreated(false);
+                setIsOpen(false);
+                setEmail('');
+            }, 2000);
+        } catch (error) {
+            console.error('Error creating alert:', error);
+            alert('Erro ao criar alerta. Tente novamente.');
+        } finally {
+            setIsCreating(false);
         }
     };
 
     return (
-        <div className={cn('relative', className)}>
+        <>
             <Button
-                variant={isSubscribed ? 'default' : 'outline'}
+                variant="outline"
                 size="lg"
-                onClick={toggleForm}
-                className={cn(
-                    'w-full font-semibold transition-all',
-                    isSubscribed && 'bg-success hover:bg-success/90 text-white'
-                )}
+                className={`h-12 font-semibold ${className}`}
+                onClick={() => setIsOpen(true)}
             >
-                {isSubscribed ? (
-                    <>
-                        <Check className="w-5 h-5 mr-2" />
-                        Alerta Criado!
-                    </>
-                ) : (
-                    <>
-                        <Bell className="w-5 h-5 mr-2" />
-                        Criar Alerta de Preço
-                    </>
-                )}
+                <Bell className="w-5 h-5 mr-2" />
+                Criar Alerta
             </Button>
 
-            {/* Alert Form Popover */}
-            {showForm && !isSubscribed && (
-                <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 bg-black/20 z-40 md:hidden"
-                        onClick={toggleForm}
-                    />
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Criar Alerta de Preço</DialogTitle>
+                        <DialogDescription>
+                            Receba uma notificação quando o preço de <strong>{productTitle}</strong> atingir o valor desejado.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                    {/* Form */}
-                    <div className="absolute left-0 right-0 md:left-auto md:right-0 top-full mt-2 w-full md:w-80 bg-card border border-border rounded-lg shadow-xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="flex items-start justify-between mb-3">
-                            <div>
-                                <h3 className="font-bold text-sm">Alerta de Preço</h3>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                    Notificaremos quando o preço cair
-                                </p>
-                            </div>
-                            <button
-                                onClick={toggleForm}
-                                className="text-muted-foreground hover:text-foreground"
-                                aria-label="Fechar"
-                            >
-                                <BellOff className="w-4 h-4" />
-                            </button>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="email">Seu E-mail</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="seu@email.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-3">
-                            {/* Target Price */}
-                            <div>
-                                <label className="text-xs font-medium text-muted-foreground block mb-1">
-                                    Avisar quando chegar em:
-                                </label>
-                                <Input
-                                    type="number"
-                                    placeholder={formatPrice(currentPrice * 0.9).replace('R$', '').trim()}
-                                    value={targetPrice}
-                                    onChange={(e) => setTargetPrice(e.target.value)}
-                                    className="h-9"
-                                    required
-                                    min={0}
-                                    step={0.01}
-                                />
-                                <p className="text-[10px] text-muted-foreground mt-1">
-                                    Preço atual: {formatPrice(currentPrice)}
-                                </p>
-                            </div>
-
-                            {/* Email */}
-                            <div>
-                                <label className="text-xs font-medium text-muted-foreground block mb-1">
-                                    Seu e-mail:
-                                </label>
-                                <Input
-                                    type="email"
-                                    placeholder="seu@email.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="h-9"
-                                    required
-                                />
-                            </div>
-
-                            {/* Submit */}
-                            <Button
-                                type="submit"
-                                size="sm"
-                                className="w-full font-semibold"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                        Criando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Bell className="w-4 h-4 mr-2" />
-                                        Criar Alerta
-                                    </>
-                                )}
-                            </Button>
-
-                            <p className="text-[10px] text-muted-foreground text-center">
-                                Você receberá um email quando o preço atingir o valor desejado
-                            </p>
-                        </form>
+                        <div className="grid gap-2">
+                            <Label htmlFor="targetPrice">
+                                Preço Desejado
+                                <span className="text-xs text-muted-foreground block mt-1">
+                                    Preço atual: {formatPrice(currentPrice / 100)}
+                                </span>
+                            </Label>
+                            <Input
+                                id="targetPrice"
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={targetPrice}
+                                onChange={(e) => setTargetPrice(parseFloat(e.target.value))}
+                            />
+                        </div>
                     </div>
-                </>
-            )}
-        </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isCreating}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleCreateAlert} disabled={isCreating || created}>
+                            {created ? (
+                                <>
+                                    <Check className="w-4 h-4 mr-2" />
+                                    Criado!
+                                </>
+                            ) : (
+                                <>{isCreating ? 'Criando...' : 'Criar Alerta'}</>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

@@ -1,0 +1,97 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+const { token } = Astro.url.searchParams;
+
+if (!token) {
+  return Astro.redirect('/login');
+}
+---
+
+<Layout title="Verificando Login - Nerd Ofertas">
+  <main class="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 flex items-center justify-center px-4">
+    <div class="max-w-md w-full">
+      <div class="bg-zinc-800/50 backdrop-blur-xl border border-zinc-700/50 rounded-2xl p-8 shadow-2xl text-center">
+        <!-- Loading State -->
+        <div id="loading" class="space-y-4">
+          <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto"></div>
+          <h2 class="text-xl font-semibold text-white">Verificando...</h2>
+          <p class="text-zinc-400">Aguarde um momento</p>
+        </div>
+
+        <!-- Success State -->
+        <div id="success" class="hidden space-y-4">
+          <div class="text-6xl mb-4">✅</div>
+          <h2 class="text-2xl font-bold text-green-400">Login realizado!</h2>
+          <p class="text-zinc-300">Redirecionando...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="hidden space-y-4">
+          <div class="text-6xl mb-4">❌</div>
+          <h2 class="text-2xl font-bold text-red-400">Link inválido</h2>
+          <p class="text-zinc-400" id="errorMessage">O link pode ter expirado ou já foi usado.</p>
+          <a
+            href="/login"
+            class="inline-block mt-4 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+          >
+            Tentar novamente
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+const token = new URLSearchParams(window.location.search).get('token');
+
+const loadingDiv = document.getElementById('loading')!;
+const successDiv = document.getElementById('success')!;
+const errorDiv = document.getElementById('error')!;
+const errorMessage = document.getElementById('errorMessage')!;
+
+async function verifyToken() {
+  if (!token) {
+    showError('Token não fornecido');
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.PUBLIC_DB_SERVICE_URL || 'http://localhost:8787'}/auth/verify/${token}`
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Save session token
+      localStorage.setItem('sessionToken', data.sessionToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Show success
+      loadingDiv.classList.add('hidden');
+      successDiv.classList.remove('hidden');
+
+      // Redirect to home
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
+    } else {
+      showError(data.error || 'Erro ao verificar token');
+    }
+  } catch (error) {
+    console.error('Verify error:', error);
+    showError('Erro ao conectar com servidor');
+  }
+}
+
+function showError(message: string) {
+  loadingDiv.classList.add('hidden');
+  errorDiv.classList.remove('hidden');
+  errorMessage.textContent = message;
+}
+
+// Auto-verify on page load
+verifyToken();
+</script>

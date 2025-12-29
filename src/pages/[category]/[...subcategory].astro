@@ -1,0 +1,165 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ProductCard from '../../components/ProductCard';
+import { TrendingUp, Filter } from 'lucide-react';
+import type { ScraperResult, DbServiceRpc } from '@nerd-ofertas/types';
+
+export const prerender = false;
+
+const { category, subcategory } = Astro.params;
+
+// Category mapping for display
+const categoryNames: Record<string, string> = {
+  'perifericos': 'Periféricos',
+  'componentes': 'Componentes',
+  'notebooks': 'Notebooks',
+  'monitores': 'Monitores',
+  'placas-de-video': 'Placas de Vídeo',
+  'processadores': 'Processadores',
+  'memorias': 'Memórias RAM',
+  'ssd': 'SSDs e HDs',
+};
+
+const displayCategory = categoryNames[category || ''] || category;
+const displaySubcategory = subcategory ? (categoryNames[subcategory] || subcategory) : null;
+
+let products: ScraperResult[] = [];
+let trendingProducts: ScraperResult[] = [];
+let error = null;
+
+try {
+  const db = Astro.locals.runtime?.env?.DB_SERVICE;
+  if (db) {
+    // Get products from this category
+    const searchTerm = displaySubcategory || displayCategory || '';
+    const allProducts = await (db as unknown as DbServiceRpc).searchProducts(searchTerm);
+    
+    if (allProducts) {
+      products = allProducts;
+      
+      // Get top 6 trending (most clicked) products
+      // For now, just take first 6. Later we'll implement click tracking
+      trendingProducts = products.slice(0, 6);
+    }
+  }
+} catch (e) {
+  console.error("Category fetch failed:", e);
+  error = "Erro ao carregar produtos da categoria.";
+}
+
+const breadcrumbs = [
+  {label: 'Home', href: '/'},
+  ...(category ? [{label: displayCategory, href: `/${category}`}] : []),
+  ...(subcategory ? [{label: displaySubcategory, href: `/${category}/${subcategory}`}] : []),
+];
+---
+
+<Layout 
+  title={`${displaySubcategory || displayCategory} - Melhores Ofertas | Nerd Ofertas`}
+  description={`Encontre as melhores ofertas de ${displaySubcategory || displayCategory}. Compare preços e economize em ${trendingProducts.length} lojas diferentes.`}
+>
+  <main class="container mx-auto px-4 py-8">
+    {/* Breadcrumb */}
+    <nav class="mb-6 text-sm">
+      <ol class="flex items-center gap-2 text-muted-foreground">
+        {breadcrumbs.map((crumb, i) => (
+          <>
+            {i > 0 && <span>/</span>}
+            <li>
+              <a href={crumb.href} class="hover:text-primary transition-colors">
+                {crumb.label}
+              </a>
+            </li>
+          </>
+        ))}
+      </ol>
+    </nav>
+
+    {/* Header */}
+    <div class="mb-8">
+      <h1 class="text-4xl font-bold mb-2">
+        {displaySubcategory || displayCategory}
+      </h1>
+      <p class="text-muted-foreground text-lg">
+        {products.length} produtos • Compare e economize
+      </p>
+    </div>
+
+    {error && (
+      <div class="p-4 rounded-lg bg-destructive/10 text-destructive mb-6">
+        {error}
+      </div>
+    )}
+
+    {/* Trending Section */}
+    {trendingProducts.length > 0 && (
+      <section class="mb-12">
+        <div class="flex items-center gap-2 mb-6">
+          <TrendingUp class="w-6 h-6 text-primary" />
+          <h2 class="text-2xl font-bold">Em Alta</h2>
+          <span class="text-sm text-muted-foreground ml-2">Produtos mais clicados</span>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {trendingProducts.map((product) => (
+            <ProductCard product={product} client:load />
+          ))}
+        </div>
+      </section>
+    )}
+
+    {/* All Products */}
+    <section>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Todos os Produtos</h2>
+        <div class="text-sm text-muted-foreground">
+          {products.length} resultados
+        </div>
+      </div>
+
+      {products.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map((product) => (
+            <ProductCard product={product} client:load />
+          ))}
+        </div>
+      ) : (
+        !error && (
+          <div class="text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">
+            <p class="text-lg">Nenhum produto encontrado nesta categoria.</p>
+          </div>
+        )
+      )}
+    </section>
+
+    {/* SEO Content */}
+    <section class="mt-16 prose prose-zinc dark:prose-invert max-w-none">
+      <h2>Sobre {displaySubcategory || displayCategory}</h2>
+      <p class="text-muted-foreground">
+        Compare preços e encontre as melhores ofertas de {displaySubcategory || displayCategory} nas principais lojas do Brasil. 
+        Monitoramos preços diariamente para você economizar.
+      </p>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  // Track product clicks for trending algorithm
+  document.addEventListener('click', (e) => {
+    const productCard = (e.target as HTMLElement).closest('[data-product-id]');
+    if (productCard) {
+      const productId = productCard.getAttribute('data-product-id');
+      
+      // Send click event to analytics
+      if (productId && navigator.sendBeacon) {
+        const data = JSON.stringify({
+          productId,
+          category: window.location.pathname,
+          timestamp: Date.now(),
+        });
+        
+        navigator.sendBeacon('/api/track-click', data);
+      }
+    }
+  });
+</script>

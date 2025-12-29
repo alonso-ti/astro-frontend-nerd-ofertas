@@ -1,7 +1,7 @@
 ---
-import OfferCard from "@/components/OfferCard";
-import { ChevronDown } from "lucide-react";
-import type { ScraperResult } from "@nerd-ofertas/types";
+import OfferCard from './OfferCard.astro';
+import type { ScraperResult } from '@nerd-ofertas/types';
+import { ChevronDown } from 'lucide-react';
 
 interface Props {
   offers: ScraperResult[];
@@ -9,55 +9,94 @@ interface Props {
 
 const { offers } = Astro.props;
 
-// Sort by price ascending
+// Sort offers by price (default)
 const sortedOffers = [...offers].sort((a, b) => a.price - b.price);
-const bestPrice = sortedOffers[0]?.price;
+const bestOffer = sortedOffers[0];
 ---
 
 <div class="space-y-4">
-  {/* Comparison Header - Buscapé Style */}
-  <div class="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-xl">
-    <div class="flex items-center gap-3">
+  {/* Comparison Header with Controls */}
+  <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+    <div class="flex-1">
       <h3 class="text-lg font-bold text-foreground">
-        Compare preços em {offers.length} {offers.length === 1 ? 'loja' : 'lojas'}
+        Compare em {offers.length} {offers.length === 1 ? 'loja' : 'lojas'}
       </h3>
-      <div class="hidden md:block text-xs text-muted-foreground">
-        Ordenado por menor preço
-      </div>
+      <p class="text-sm text-muted-foreground">
+        Economize até {bestOffer && offers[offers.length - 1] ? 
+          new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+            (offers[offers.length - 1].price - bestOffer.price) / 100
+          ) : 'R$ 0,00'
+        } comprando na melhor oferta
+      </p>
     </div>
-    
-    {/* Future: Add sorting dropdown */}
-    <button 
-      class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
-      aria-label="Opções de ordenação"
-      disabled
-    >
-      <span class="hidden sm:inline">Ordenar</span>
-      <ChevronDown class="w-4 h-4" />
-    </button>
+
+    {/* Sorting Controls */}
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-muted-foreground">Ordenar por:</span>
+      <select 
+        id="offerSort" 
+        class="px-3 py-2 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+        onchange="sortOffers(this.value)"
+      >
+        <option value="price">Menor Preço</option>
+        <option value="store">Loja (A-Z)</option>
+        <option value="discount">Maior Desconto</option>
+      </select>
+    </div>
   </div>
 
   {/* Offers Grid */}
-  <div class="space-y-3">
-    {sortedOffers.map((offer, index) => {
-      const isBestPrice = offer.price === bestPrice;
-      const rank = index + 1;
-      
-      return (
-        <OfferCard
-          offer={offer}
-          isBestPrice={isBestPrice}
-          rank={rank}
-        />
-      );
-    })}
+  <div id="offersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {sortedOffers.map((offer, index) => (
+      <OfferCard 
+        offer={offer} 
+        isBestOffer={index === 0}
+        rank={index + 1}
+      />
+    ))}
   </div>
 
-  {/* Empty State */}
-  {offers.length === 0 && (
-    <div class="text-center py-12 bg-muted/20 rounded-xl border border-border border-dashed">
-      <p class="text-muted-foreground">Nenhuma oferta disponível no momento.</p>
-      <p class="text-sm text-muted-foreground/70 mt-1">Volte em breve para conferir novos preços.</p>
+  {/* Additional Info */}
+  {offers.length > 3 && (
+    <div class="mt-6 p-4 bg-muted/50 rounded-lg border border-border text-sm text-center text-muted-foreground">
+      <p>
+        💡 <strong>Dica:</strong> Sempre confira as condições de frete e prazos de entrega antes de finalizar sua compra.
+      </p>
     </div>
   )}
 </div>
+
+<script>
+  // Client-side sorting functionality
+  function sortOffers(criteria: string) {
+    const grid = document.getElementById('offersGrid');
+    if (!grid) return;
+
+    const cards = Array.from(grid.children);
+    
+    cards.sort((a, b) => {
+      const priceA = parseInt(a.getAttribute('data-price') || '0');
+      const priceB = parseInt(a.getAttribute('data-price') || '0');
+      const storeA = a.getAttribute('data-store') || '';
+      const storeB = b.getAttribute('data-store') || '';
+      const discountA = parseInt(a.getAttribute('data-discount') || '0');
+      const discountB = parseInt(b.getAttribute('data-discount') || '0');
+
+      switch(criteria) {
+        case 'price':
+          return priceA - priceB;
+        case 'store':
+          return storeA.localeCompare(storeB);
+        case 'discount':
+          return discountB - discountA; // Descending
+        default:
+          return 0;
+      }
+    });
+
+    cards.forEach(card => grid.appendChild(card));
+  }
+
+  // Make function globally available
+  (window as any).sortOffers = sortOffers;
+</script>

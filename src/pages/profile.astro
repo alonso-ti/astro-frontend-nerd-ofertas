@@ -1,0 +1,174 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Meu Perfil - Nerd Ofertas">
+  <main class="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 py-12 px-4">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">Meu Perfil</h1>
+        <p class="text-zinc-400">Gerencie seus alertas de preço</p>
+      </div>
+
+      <!-- User Info Card -->
+      <div class="bg-zinc-800/50 backdrop-blur-xl border border-zinc-700/50 rounded-2xl p-6 mb-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-white mb-1">Informações da Conta</h2>
+            <p id="userEmail" class="text-zinc-400">Carregando...</p>
+          </div>
+          <button
+            id="logoutBtn"
+            class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition-colors"
+          >
+            Sair
+          </button>
+        </div>
+      </div>
+
+      <!-- Alerts Section -->
+      <div class="bg-zinc-800/50 backdrop-blur-xl border border-zinc-700/50 rounded-2xl p-6">
+        <h2 class="text-xl font-bold text-white mb-4">Meus Alertas</h2>
+        
+        <!-- Loading -->
+        <div id="alertsLoading" class="text-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <p class="text-zinc-400">Carregando alertas...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="alertsEmpty" class="hidden text-center py-12">
+          <div class="text-6xl mb-4">🔔</div>
+          <h3 class="text-lg font-semibold text-zinc-300 mb-2">Nenhum alerta criado</h3>
+          <p class="text-zinc-400 mb-4">Comece a acompanhar preços de produtos</p>
+          <a
+            href="/"
+            class="inline-block px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+          >
+            Buscar Produtos
+          </a>
+        </div>
+
+        <!-- Alerts List -->
+        <div id="alertsList" class="hidden space-y-3"></div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+import { getUser, getSessionToken, logout, requireAuth } from '../lib/auth';
+
+// Require authentication
+requireAuth();
+
+const userEmailEl = document.getElementById('userEmail')!;
+const logoutBtn = document.getElementById('logoutBtn')!;
+const alertsLoading = document.getElementById('alertsLoading')!;
+const alertsEmpty = document.getElementById('alertsEmpty')!;
+const alertsList = document.getElementById('alertsList')!;
+
+// Load user info
+const user = getUser();
+if (user) {
+  userEmailEl.textContent = user.email;
+}
+
+// Logout handler
+logoutBtn.addEventListener('click', async () => {
+  if (confirm('Deseja realmente sair?')) {
+    await logout();
+  }
+});
+
+// Load user alerts
+async function loadAlerts() {
+  const token = getSessionToken();
+  
+  if (!token) {
+    window.location.href = '/login';
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.PUBLIC_DB_SERVICE_URL || 'http://localhost:8787'}/user/alerts`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to load alerts');
+    }
+
+    const data = await response.json();
+    const alerts = data.alerts || [];
+
+    alertsLoading.classList.add('hidden');
+
+    if (alerts.length === 0) {
+      alertsEmpty.classList.remove('hidden');
+    } else {
+      alertsList.classList.remove('hidden');
+      renderAlerts(alerts);
+    }
+  } catch (error) {
+    console.error('Load alerts error:', error);
+    alertsLoading.classList.add('hidden');
+    alertsEmpty.classList.remove('hidden');
+  }
+}
+
+function renderAlerts(alerts: any[]) {
+  alertsList.innerHTML = alerts.map(alert => `
+    <div class="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-700/30 rounded-lg">
+      <div class="flex-1">
+        <h4 class="font-medium text-white mb-1">${alert.product_title || 'Produto'}</h4>
+        <p class="text-sm text-zinc-400">
+          Alerta: R$ ${(alert.target_price / 100).toFixed(2)}
+          ${alert.status === 'triggered' ? ' • <span class="text-green-400">✅ Disparado!</span>' : ''}
+        </p>
+      </div>
+      <button
+        onclick="deleteAlert('${alert.id}')"
+        class="px-3 py-1 text-sm text-red-400 hover:text-red-300 transition-colors"
+      >
+        Deletar
+      </button>
+    </div>
+  `).join('');
+}
+
+// Delete alert
+(window as any).deleteAlert = async (alertId: string) => {
+  if (!confirm('Deseja deletar este alerta?')) return;
+
+  const token = getSessionToken();
+  
+  try {
+    await fetch(
+      `${import.meta.env.PUBLIC_DB_SERVICE_URL || 'http://localhost:8787'}/alerts/${alertId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    // Reload alerts
+    alertsList.classList.add('hidden');
+    alertsLoading.classList.remove('hidden');
+    await loadAlerts();
+  } catch (error) {
+    console.error('Delete alert error:', error);
+  }
+};
+
+// Load alerts on page ready
+loadAlerts();
+</script>

@@ -1,15 +1,24 @@
-/// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
-/// <reference types="@cloudflare/workers-types" />
 
-type Runtime = import("@astrojs/cloudflare").Runtime<Env>;
-
-declare namespace App {
-  interface Locals extends Runtime { }
+interface ImportMetaEnv {
+  readonly PUBLIC_DB_SERVICE_URL: string;
 }
 
-interface Env {
-  API_GATEWAY: Fetcher;
-  ASSETS: Fetcher;
-  DB_SERVICE: Service<import("@nerd-ofertas/types").DbServiceRpc>;
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+// Cloudflare runtime types
+interface CloudflareRuntime {
+  env: {
+    ANALYTICS?: AnalyticsEngineDataset;
+    KV?: KVNamespace;
+    DB_SERVICE?: any;
+  };
+}
+
+declare namespace App {
+  interface Locals extends CloudflareRuntime {
+    runtime: CloudflareRuntime;
+  }
 }

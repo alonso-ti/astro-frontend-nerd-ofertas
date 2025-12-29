@@ -1,0 +1,40 @@
+---
+import { ChevronRight } from 'lucide-react';
+
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  items: BreadcrumbItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<nav aria-label="Breadcrumb" class="bg-card border-b border-border">
+  <div class="container mx-auto px-4 py-3">
+    <ol class="flex items-center space-x-2 text-sm overflow-x-auto no-scrollbar">
+      {items.map((item, index) => (
+        <li class="flex items-center whitespace-nowrap">
+          {index > 0 && (
+            <ChevronRight class="w-4 h-4 mx-2 text-muted-foreground shrink-0" />
+          )}
+          {item.href ? (
+            <a 
+              href={item.href} 
+              class="text-muted-foreground hover:text-primary transition-colors font-medium"
+            >
+              {item.label}
+            </a>
+          ) : (
+            <span class="text-foreground font-semibold truncate max-w-[200px] md:max-w-none">
+              {item.label}
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  </div>
+</nav>
